@@ -23,6 +23,7 @@
     header{position:relative;background:#071421c9;border-bottom:1px solid #42b9df42;box-shadow:0 8px 35px #020a13a8;padding:28px max(24px,calc((100vw - 1140px)/2))}
     header .eyebrow{font-family:Consolas,monospace;letter-spacing:.18em;color:#50d9e7;font-size:11px;margin:0 0 9px}
     header h1{font-size:29px;letter-spacing:.03em;color:#f2fbff}header p{color:#89a8ba}
+    #exit-desktop{position:absolute;right:max(24px,calc((100vw - 1140px)/2));top:31px;padding:8px 13px;font-size:13px}
     main{max-width:1180px;position:relative;margin:26px auto;padding:0 18px 50px}
     .card{background:linear-gradient(150deg,#11283cda,#0d1b2edc);border:1px solid #2f658080;box-shadow:0 16px 45px #020a1780,inset 0 1px #6dd9f018;color:#e3eff5;border-radius:17px}
     .card h2{color:#effbff;font-size:18px;letter-spacing:.02em}.step{background:#1a5366;color:#6df2f2;border:1px solid #45b8d688;box-shadow:0 0 17px #1fbad530}
@@ -36,11 +37,11 @@
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 19px}.stat{background:#0c2133c9;border:1px solid #2d6077;border-radius:13px;padding:16px 18px;box-shadow:inset 0 1px #61d8f014}.stat-label{display:block;font-size:12px;color:#91aebe;letter-spacing:.08em}.stat-value{display:block;margin-top:8px;font:600 27px Consolas,monospace;color:#68e5ee}.stat small{color:#718fa2}
     .progress-head{display:flex;justify-content:space-between;align-items:center;gap:16px}.progress-time{font:600 20px Consolas,monospace;color:#70e7eb}.progress-track{height:6px;border-radius:6px;background:#203c50;overflow:hidden;margin:12px 0 20px}.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#25c7d9,#85f0d8);box-shadow:0 0 14px #61e2dc;transition:width .35s}.progress-steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.progress-steps li{border:1px solid #2d4d60;background:#0a1a29;border-radius:10px;padding:11px;font-size:12px;color:#839bad;min-height:58px}.progress-steps li:before{content:attr(data-number);display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;margin-right:6px;border-radius:50%;background:#1c3b50;color:#b4d0de;font:600 12px Consolas,monospace}.progress-steps li.done{border-color:#236d77;color:#8be4db}.progress-steps li.done:before{content:"✓";background:#1c645e;color:#d2fff5}.progress-steps li.active{border-color:#48d8e6;background:#123647;color:#ecffff;box-shadow:0 0 17px #27b5cc30}.progress-steps li.active:before{background:#2c8fa3;color:white}.progress-steps li.failed{border-color:#d06872;color:#ffb4b5}.progress-detail{margin:15px 0 0;color:#9ec5d0;font-size:13px;min-height:20px}
     .progress-log{margin-top:13px;padding:10px 12px;border:1px solid #254a5c;border-radius:9px;background:#081827;max-height:138px;overflow:auto;font:12px/1.7 Consolas,"Microsoft YaHei",monospace;color:#8eb8c5}.progress-log div:last-child{color:#b4eef0}.progress-log time{color:#4bd1dc;margin-right:10px}
-    @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.progress-steps{grid-template-columns:1fr}.progress-steps li{min-height:auto}.settings-grid{grid-template-columns:1fr}header h1{font-size:23px}}
+    @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.progress-steps{grid-template-columns:1fr}.progress-steps li{min-height:auto}.settings-grid{grid-template-columns:1fr}header h1{font-size:23px}#exit-desktop{position:static;margin-top:14px}}
   </style>
 </head>
 <body>
-<header><p class="eyebrow">DOCUMENT INTELLIGENCE / LOCAL WORKSPACE</p><h1>业务联系单生成助手</h1><p>智能解析订舱单据 · 人工核对关键字段 · 导出标准业务联系单</p></header>
+<header><p class="eyebrow">DOCUMENT INTELLIGENCE / LOCAL WORKSPACE</p><h1>业务联系单生成助手</h1><p>智能解析订舱单据 · 人工核对关键字段 · 导出标准业务联系单</p><button id="exit-desktop" class="secondary" type="button" hidden>退出程序</button></header>
 <main>
   <section class="stats" aria-label="本次运行统计">
     <div class="stat"><span class="stat-label">累计提取</span><strong id="stat-total" class="stat-value">0</strong><small>本次服务运行</small></div>
@@ -166,16 +167,25 @@ function render(data){
   $('review').hidden=false;$('review').scrollIntoView({behavior:'smooth'});
 }
 let selectionVersion=0,extracting=false,currentExtraction=null;
-let settingsDirty=false,aiReady=false;
+let settingsDirty=false,aiReady=false,desktopQuitToken='';
 function updateMode(){const selected=$('ai-mode').checked;$('ai-settings').hidden=!selected;$('mode-pill').hidden=!selected}
 document.querySelectorAll('input[name="mode"]').forEach(input=>input.addEventListener('change',updateMode));
 function applyConfig(config){
+  if(config.desktop_mode&&config.quit_token){desktopQuitToken=config.quit_token;$('exit-desktop').hidden=false}
   if(config.base_url)$('ai-base-url').value=config.base_url;
   if(config.model)$('ai-model').value=config.model;
   settingsDirty=false;aiReady=!!config.ai_available;
   $('mode-pill').textContent=aiReady?`${config.model} 已通过连接测试`:'未连接，请填写设置并测试';
   if(!config.template_ready)message('upload-message','缺少 Excel 模板，请检查 assets 目录',true);
 }
+$('exit-desktop').onclick=async()=>{
+  if(!desktopQuitToken)return;
+  try{
+    const response=await fetch('/api/desktop/quit',{method:'POST',headers:{'Content-Type':'application/json','X-ASW-Desktop-Token':desktopQuitToken},body:'{}'});
+    if(!response.ok)throw Error('退出程序失败');
+    document.body.replaceChildren(document.createTextNode('业务联系单助手已退出，可以关闭此页面。'));
+  }catch(error){message('upload-message',error.message,true)}
+};
 for(const id of ['ai-base-url','ai-key','ai-model'])$(id).addEventListener('input',()=>{settingsDirty=true;$('mode-pill').textContent='设置已修改，需重新测试连接'});
 $('save-ai').onclick=async()=>{
   const base_url=$('ai-base-url').value.trim(),model=$('ai-model').value.trim(),api_key=$('ai-key').value.trim();

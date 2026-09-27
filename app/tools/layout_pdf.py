@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from app.state import PROJECT_ROOT
+from app.state import RUNTIME_TEMP_ROOT
 
 
 def word_to_pdf(name: str, data: bytes) -> bytes:
@@ -16,8 +16,8 @@ def word_to_pdf(name: str, data: bytes) -> bytes:
     suffix = Path(name).suffix.lower()
     if suffix not in {".doc", ".docx", ".rtf"}:
         raise ValueError("只支持 Word/RTF 文件版面转换")
-    temporary_root = PROJECT_ROOT / ".runtime_tmp"
-    temporary_root.mkdir(exist_ok=True)
+    temporary_root = RUNTIME_TEMP_ROOT
+    temporary_root.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=temporary_root, suffix=suffix, delete=False) as source_file:
         source_file.write(data)
         source = Path(source_file.name)
@@ -27,6 +27,7 @@ def word_to_pdf(name: str, data: bytes) -> bytes:
         result = subprocess.run(
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(Path(__file__).with_name("word_to_pdf.ps1")), "-Source", str(source), "-Destination", str(output)],
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if output.stat().st_size == 0:
             raise RuntimeError("Word 转 PDF 失败：" + result.stderr.strip()[:250])

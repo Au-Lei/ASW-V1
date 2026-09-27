@@ -11,7 +11,7 @@ import openpyxl
 import pdfplumber
 from docx import Document
 
-from app.state import PROJECT_ROOT
+from app.state import RUNTIME_TEMP_ROOT
 
 
 def decode_office_output(value: bytes | str) -> str:
@@ -43,8 +43,8 @@ def read_document(name: str, data: bytes) -> str:
     if suffix in {".doc", ".rtf", ".xls"}:
         if os.name != "nt":
             raise ValueError("旧版 DOC/RTF/XLS 目前需要 Windows 和 Microsoft Office")
-        temporary_root = PROJECT_ROOT / ".runtime_tmp"
-        temporary_root.mkdir(exist_ok=True)
+        temporary_root = RUNTIME_TEMP_ROOT
+        temporary_root.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(dir=temporary_root, suffix=suffix, delete=False) as temporary_file:
             temporary_file.write(data)
             source = Path(temporary_file.name)
@@ -52,6 +52,7 @@ def read_document(name: str, data: bytes) -> str:
             result = subprocess.run(
                 ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(Path(__file__).with_name("legacy_extract.ps1")), "-Path", str(source)],
                 capture_output=True, timeout=45, check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             output = decode_office_output(result.stdout)
             error = decode_office_output(result.stderr)

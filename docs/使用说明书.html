@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>业务联系单生成助手｜使用说明</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; color: #17304a; background: #f3f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.7; }
+    main { max-width: 860px; margin: 36px auto; padding: 0 20px 40px; }
+    header { padding: 34px 38px; border-radius: 18px; color: white; background: linear-gradient(120deg, #102b48, #087b98); }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    header p { margin: 0; color: #d7eef4; }
+    section { margin-top: 18px; padding: 24px 30px; border: 1px solid #dce8f0; border-radius: 14px; background: white; box-shadow: 0 4px 20px #163a5810; }
+    h2 { margin: 0 0 12px; font-size: 20px; color: #086987; }
+    p { margin: 8px 0; }
+    ol, ul { margin: 8px 0; padding-left: 23px; }
+    li { padding: 3px 0; }
+    .note { margin-top: 15px; padding: 12px 16px; border-left: 4px solid #19a0aa; border-radius: 6px; background: #eff9fa; }
+    .warn { border-left-color: #d79820; background: #fff8e9; }
+    .config { margin: 12px 0; padding: 14px 18px; border-radius: 9px; background: #f1f7fb; }
+    .config div { margin: 4px 0; overflow-wrap: anywhere; }
+    .config code { font-size: 15px; color: #075f80; }
+    .flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .flow span { padding: 5px 11px; border-radius: 20px; color: #076887; background: #e6f5fa; font-weight: 600; }
+    footer { margin: 22px 4px 0; text-align: center; color: #64788a; font-size: 13px; }
+    @media (max-width: 600px) { main { margin: 14px auto; padding: 0 12px 25px; } header, section { padding: 20px; } h1 { font-size: 25px; } }
+    @media print { :root { background: white; } main { margin: 0 auto; } section { break-inside: avoid; box-shadow: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>业务联系单生成助手</h1>
+    <p>简明使用说明 · 上传单据，核对信息，下载 Excel</p>
+  </header>
+
+  <section>
+    <h2>这个程序能做什么？</h2>
+    <p>从订舱委托书、入货通知或订舱确认中提取提单号、船名、航次、船期、箱量及类型、场站、目的港和起运港，并填入业务联系单 Excel 模板。提取结果可在下载前人工修改。</p>
+    <div class="flow"><span>选择文件</span><span>开始提取</span><span>人工核对</span><span>下载 Excel</span></div>
+  </section>
+
+  <section>
+    <h2>如何使用</h2>
+    <ol>
+      <li><strong>打开：</strong>在 Windows 电脑上双击 <strong>ASW-Contact-Sheet.exe</strong>，程序会自动打开浏览器页面。</li>
+      <li><strong>选文件：</strong>上传同一票业务的订舱委托书、入货通知或订舱确认。只有一份也可以；每份文件不超过 12 MB。</li>
+      <li><strong>选方式：</strong>“规则演示”无需联网或密钥；复杂版式、扫描版 PDF 可选“AI 提取”。然后点击“开始提取”。</li>
+      <li><strong>核对：</strong>逐项对照原始单据，改正错误或补充空白。承运公司、合约可手填；揽货人、客服可从英文名下拉列表选择。</li>
+      <li><strong>导出：</strong>点击“下载业务联系单 Excel”，打开下载的表格，再检查一次内容和版式。</li>
+    </ol>
+    <p class="note"><strong>处理下一票：</strong>点击文件名旁的 × 移除单份文件，或点击“清空已选文件”，再选择新文件。请勿把不同票的单据一起上传。</p>
+  </section>
+
+  <section>
+    <h2>使用 AI 提取时</h2>
+    <p>选择“AI 提取”后，页面才会显示设置。填写服务商提供的 <strong>base_url、api_key、model</strong>，点击“测试连接并保存”，成功后再开始提取。设置只在本次程序运行期间有效，重启后需要重新填写。</p>
+    <p><strong>DeepSeek 配置示例：</strong></p>
+    <div class="config">
+      <div>base_url：<code>https://api.deepseek.com</code></div>
+      <div>api_key：<code>XXX</code>（占位符，使用时在程序页面填写自己的密钥）</div>
+      <div>model：<code>deepseek-flash</code> / <code>deepseek-v4-pro</code>（二选一，以账号实际可用的模型名称为准）</div>
+    </div>
+    <p>配置名称可参考 <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noopener noreferrer">DeepSeek 官方模型文档</a>。</p>
+    <p class="note warn">AI 提取需要联网，可能产生服务商费用；单据内容会发送到配置的 AI 服务。使用前请确认公司允许处理相关客户资料。AI 结果也必须人工核对。</p>
+  </section>
+
+  <section>
+    <h2>使用提醒</h2>
+    <ul>
+      <li>找不到的字段可保持空白，在核对页根据邮件或聊天记录补填，不要猜测。</li>
+      <li>旧版 <strong>.doc、.rtf、.xls</strong> 文件在使用电脑上可能需要安装 Microsoft Office；PDF、DOCX、XLSX 不需要。</li>
+      <li>关闭浏览器标签不等于退出程序。再次双击 exe 可重新打开页面；用完请点击网页右上角“退出程序”。</li>
+    </ul>
+  </section>
+
+  <footer>业务联系单生成助手 · 本地演示版本 · 请以人工核对后的 Excel 为准</footer>
+</main>
+</body>
+</html>

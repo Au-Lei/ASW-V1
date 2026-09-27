@@ -3,12 +3,15 @@
 import io
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
+from urllib.request import ProxyHandler, Request, build_opener
 from unittest.mock import patch
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -21,13 +24,49 @@ from app.nodes.rule_extract import rule_extract
 from app.nodes.normalize import normalize_destination, normalize_origin, normalize_sailing_date
 from app.tools.excel_export import make_workbook
 from app.tools.document_reader import decode_office_output, read_document
+from app.tools.layout_pdf import word_to_pdf
 from app.state import PROJECT_ROOT
+from app.state import resource_root, user_data_root
+from desktop import DesktopHandler, DesktopServer
 from app.tools.ai_extract import ai_extract, build_request, build_chat_request
 from app.tools import alias_memory
 from app.tools import provider_settings
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_desktop_quit_is_available_only_with_session_token(self):
+        server = DesktopServer(("127.0.0.1", 0), DesktopHandler)
+        server.quit_token = "test-quit-token"
+        worker = Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        opener = build_opener(ProxyHandler({}))
+        base = f"http://127.0.0.1:{server.server_port}"
+        try:
+            config = json.load(opener.open(base + "/api/config", timeout=3))
+            self.assertTrue(config["desktop_mode"])
+            self.assertEqual(config["quit_token"], server.quit_token)
+            with self.assertRaises(HTTPError) as caught:
+                opener.open(Request(base + "/api/desktop/quit", data=b"{}", method="POST"), timeout=3)
+            self.assertEqual(caught.exception.code, 403)
+            request = Request(base + "/api/desktop/quit", data=b"{}", method="POST", headers={"X-ASW-Desktop-Token": server.quit_token})
+            self.assertEqual(opener.open(request, timeout=3).status, 200)
+            worker.join(timeout=3)
+            self.assertFalse(worker.is_alive())
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_desktop_http_logging_works_without_console(self):
+        with patch.object(sys, "stderr", None):
+            DesktopHandler.log_message(None, "%s", "request")
+
+    def test_frozen_resources_and_mutable_data_use_separate_paths(self):
+        bundled = str(PROJECT_ROOT / "bundle-example")
+        local_data = str(PROJECT_ROOT / "local-data-example")
+        with patch.object(sys, "frozen", True, create=True), patch.object(sys, "_MEIPASS", bundled, create=True), patch.dict(os.environ, {"LOCALAPPDATA": local_data}):
+            self.assertEqual(resource_root(), Path(bundled))
+            self.assertEqual(user_data_root(), Path(local_data) / "ASW-Project01")
+
     def test_live_job_reports_real_steps_and_updates_stats(self):
         before = jobs.get_stats()
         document = [{"name": "入货通知.pdf", "role": "入货通知", "data": b"demo"}]
@@ -410,6 +449,7 @@ class WorkflowTests(unittest.TestCase):
         seen = []
 
         def fake_office(command, **kwargs):
+            self.assertEqual(kwargs["creationflags"], subprocess.CREATE_NO_WINDOW)
             source = Path(command[-1])
             self.assertTrue(source.exists())
             self.assertEqual(source.read_bytes(), b"legacy sample")
@@ -425,6 +465,15 @@ class WorkflowTests(unittest.TestCase):
         sample = "场站: 青岛世腾克运"
         self.assertEqual(decode_office_output(sample.encode("utf-8")), sample)
         self.assertEqual(decode_office_output(sample.encode("cp936")), sample)
+
+    def test_word_layout_conversion_starts_powershell_without_window(self):
+        def fake_powershell(command, **kwargs):
+            self.assertEqual(kwargs["creationflags"], subprocess.CREATE_NO_WINDOW)
+            raise RuntimeError("test stopped before Office conversion")
+
+        with patch("app.tools.layout_pdf.subprocess.run", side_effect=fake_powershell):
+            with self.assertRaisesRegex(RuntimeError, "test stopped"):
+                word_to_pdf("sample.doc", b"sample")
 
     def test_notice_wins_and_conflict_is_visible(self):
         entrust = "PORT OF LOADING: QINGDAO\nPORT OF DISCHARGE: JAKARTA\n2X40HQ"

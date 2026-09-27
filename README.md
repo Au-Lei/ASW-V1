@@ -7,13 +7,26 @@
 需要 Python 3.10 以上。旧版 `.doc/.rtf/.xls` 需要 Windows 和本机 Microsoft Office；PDF、DOCX、XLSX 无需 Office。
 
 ```powershell
-cd C:\Users\Administrator\Documents\Codex\2026-09-26\lai\ASW-Project01
+# 请先在终端进入包含 app.py 的项目目录
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe app.py
 ```
 
 在浏览器打开 <http://127.0.0.1:8765>。
+
+## Windows 双击版
+
+在 Windows 开发电脑上安装构建依赖并打包（老板电脑无需安装 Python）：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m PyInstaller --noconfirm desktop.spec
+```
+
+将 `dist/ASW-Contact-Sheet.exe` 单独复制到目标电脑，双击即可启动并自动打开默认浏览器，不显示额外控制窗口。关闭浏览器标签不会停止后台程序；再次双击 exe 会重新打开已有页面，不会启动第二份服务。需要退出时请点击网页右上角“退出程序”。每次启动自动选取可用本机端口，因此不会与现有的 `8765` 服务冲突。Windows 可能显示未知发布者提示；正式公司分发时应考虑代码签名。
+
+Excel 模板、页面、提示词和 PowerShell 转换脚本已嵌入 exe。批准过的字段别名写在目标电脑的 `%LOCALAPPDATA%\ASW-Project01\data\field_aliases.json`，不会写回 exe。API Key 只保存在当前运行进程的内存中，退出后需要重新填写。AI 提取仍需要目标电脑能够访问所配置的 AI 服务，且须遵守公司的数据外发要求；规则提取可离线工作。旧版 `.doc/.rtf/.xls` 及 Word 版面转换仍需要目标电脑安装 Microsoft Office；PDF、DOCX、XLSX 不需要 Office。首次交付前应在没有 Python 的 Windows 电脑上完整测试上传、核对和下载。
 
 默认是“规则演示”模式，不需要 API 密钥。此模式只针对常见标签做保守提取，适合演示上传、核对和导出完整流程；复杂版式可能留空，需人工确认。
 

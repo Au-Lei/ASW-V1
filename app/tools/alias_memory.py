@@ -6,17 +6,19 @@ import re
 import tempfile
 import threading
 
-from app.state import FIELDS, PROJECT_ROOT
+from app.state import APP_DATA_ROOT, FIELDS, PROJECT_ROOT
 
 
-MEMORY_FILE = PROJECT_ROOT / "data" / "field_aliases.json"
+MEMORY_FILE = APP_DATA_ROOT / "data" / "field_aliases.json"
+SEED_FILE = PROJECT_ROOT / "data" / "field_aliases.json"
 _LOCK = threading.RLock()
 
 
 def load_aliases() -> dict[str, list[str]]:
     with _LOCK:
         try:
-            raw = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+            source = MEMORY_FILE if MEMORY_FILE.exists() else SEED_FILE
+            raw = json.loads(source.read_text(encoding="utf-8"))
         except FileNotFoundError:
             raw = {}
         return {field: [alias for alias in raw.get(field, []) if isinstance(alias, str)] for field in FIELDS}

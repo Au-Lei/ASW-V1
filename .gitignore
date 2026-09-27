@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 outputs/
 .runtime_tmp/
+build/
+dist/
